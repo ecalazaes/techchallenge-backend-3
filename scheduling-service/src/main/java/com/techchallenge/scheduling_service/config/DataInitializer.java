@@ -45,7 +45,7 @@ public class DataInitializer implements CommandLineRunner {
             userRepository.save(createAccount("paciente_dani", "123", "ROLE_PACIENTE"));
             userRepository.save(createAccount("paciente_gw2", "123", "ROLE_PACIENTE"));
 
-            System.out.println("✅ Usuários criados com sucesso!");
+            System.out.println("Usuários criados com sucesso!");
         }
     }
 
