@@ -21,6 +21,13 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
+/**
+ * Testes de integração para o fluxo de agendamentos.
+ * Valida a persistência real no banco de dados H2 e a integração entre Service e Repository,
+ * utilizando MockBean para isolar a camada de mensageria.
+ * * @author Erick Calazães
+ * @version 1.0.0
+ */
 @SpringBootTest
 @ActiveProfiles("test")
 class AppointmentIntegrationTest {
@@ -31,17 +38,23 @@ class AppointmentIntegrationTest {
     @Autowired
     private AppointmentRepository repository;
 
-    @MockBean // Substitui o Producer real para não tentar conectar no RabbitMQ
+    @MockBean
     private NotificationProducer producer;
 
+    /**
+     * Limpa o banco de dados antes de cada execução de teste para garantir o isolamento.
+     */
     @BeforeEach
     void setup() {
         repository.deleteAll();
     }
 
+    /**
+     * Valida o ciclo de vida completo da criação de um agendamento, verificando a
+     * persistência correta no banco e o disparo da integração por mensagem.
+     */
     @Test
     void devePersistirAgendamentoNoBancoDeDados() {
-        // GIVEN
         Appointment app = new Appointment();
         app.setPatientName("Erick");
         app.setPatientEmail("erick@teste.com");
@@ -49,20 +62,21 @@ class AppointmentIntegrationTest {
         app.setDoctorName("Dr. House");
         app.setAppointmentDate(LocalDateTime.now().plusDays(1));
 
-        // WHEN
         Appointment salvo = appointmentService.createAppointment(app);
 
-        // THEN
         Optional<Appointment> buscado = repository.findById(salvo.getId());
         assertTrue(buscado.isPresent());
         assertEquals("SCHEDULED", buscado.get().getStatus());
         verify(producer, times(1)).sendAppointmentEvent(any());
     }
 
+    /**
+     * Verifica se a operação de cancelamento atualiza corretamente o estado da
+     * entidade no banco de dados e notifica os serviços interessados.
+     */
     @Test
     @DisplayName("Deve mudar status para CANCELLED no banco de dados")
     void deveCancelarConsultaComSucessoNoBanco() {
-        // GIVEN: Preencha TODOS os campos obrigatórios
         Appointment app = new Appointment();
         app.setPatientName("Erick");
         app.setPatientEmail("erick@teste.com");
@@ -71,13 +85,10 @@ class AppointmentIntegrationTest {
         app.setAppointmentDate(LocalDateTime.now().plusDays(1));
         app.setStatus("SCHEDULED");
 
-        // Salva o estado inicial
         Appointment salvo = repository.save(app);
 
-        // WHEN: Cancela via Service
         appointmentService.cancelAppointment(salvo.getId());
 
-        // THEN: Busca do banco e verifica
         Appointment cancelado = repository.findById(salvo.getId()).get();
         assertEquals("CANCELLED", cancelado.getStatus());
         verify(producer, times(1)).sendAppointmentEvent(any());

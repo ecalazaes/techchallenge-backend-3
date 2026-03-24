@@ -20,6 +20,12 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.*;
 
+/**
+ * Classe de testes unitários para o serviço de agendamentos (AppointmentService).
+ * Valida regras de negócio, integração com repositórios e mensageria.
+ * * @author Erick Calazães
+ * @version 1.0.0
+ */
 @ExtendWith(MockitoExtension.class)
 public class AppointmentServiceTest {
 
@@ -32,27 +38,31 @@ public class AppointmentServiceTest {
     @InjectMocks
     private AppointmentService appointmentService;
 
+    /**
+     * Valida se um novo agendamento é criado com o status inicial correto
+     * e se o evento de notificação é disparado após a persistência.
+     */
     @Test
     void deveCriarAgendamentoComStatusScheduledEDispararEvento() {
-        // GIVEN
         Appointment appointment = new Appointment();
         appointment.setPatientName("Erick");
         appointment.setDoctorName("Dr. Silva");
 
         when(repository.save(any(Appointment.class))).thenAnswer(i -> i.getArgument(0));
 
-        // WHEN
         Appointment result = appointmentService.createAppointment(appointment);
 
-        // THEN
         assertEquals("SCHEDULED", result.getStatus());
         verify(repository, times(1)).save(any());
         verify(producer, times(1)).sendAppointmentEvent(any());
     }
 
+    /**
+     * Verifica a transição de status para cancelado e a comunicação
+     * do evento de cancelamento para os demais microserviços.
+     */
     @Test
     void deveAtualizarStatusParaCancelledAoCancelar() {
-        // GIVEN
         Long id = 1L;
         Appointment appointment = new Appointment();
         appointment.setId(id);
@@ -61,25 +71,25 @@ public class AppointmentServiceTest {
         when(repository.findById(id)).thenReturn(Optional.of(appointment));
         when(repository.save(any())).thenAnswer(i -> i.getArgument(0));
 
-        // WHEN
         appointmentService.cancelAppointment(id);
 
-        // THEN
         assertEquals("CANCELLED", appointment.getStatus());
         verify(producer, times(1)).sendAppointmentEvent(appointment);
     }
 
+    /**
+     * Testa o comportamento do sistema ao tentar manipular um ID inexistente,
+     * garantindo que a exceção adequada seja lançada com a mensagem correta.
+     */
     @Test
     @DisplayName("Deve lançar exceção ao tentar atualizar consulta que não existe")
     void deveFalharAoAtualizarConsultaInexistente() {
-        // GIVEN
         Long idInexistente = 999L;
         Appointment dadosNovos = new Appointment();
         dadosNovos.setDoctorName("Dr. Teste");
 
         when(repository.findById(idInexistente)).thenReturn(Optional.empty());
 
-        // WHEN & THEN
         RuntimeException exception = assertThrows(RuntimeException.class, () -> {
             appointmentService.updateAppointment(idInexistente, dadosNovos);
         });
@@ -88,35 +98,36 @@ public class AppointmentServiceTest {
         verify(repository, never()).save(any());
     }
 
+    /**
+     * Valida a regra de negócio que impede o agendamento de consultas
+     * para o mesmo médico em horários conflitantes.
+     */
     @Test
     @DisplayName("Não deve permitir agendamentos duplicados para o mesmo médico e hora")
     void naoDevePermitirConflitoDeHorario() {
-        // GIVEN
         LocalDateTime horario = LocalDateTime.of(2026, 12, 1, 14, 0);
         String nomeMedico = "Dr. House";
 
         Appointment app = new Appointment();
         app.setDoctorName(nomeMedico);
         app.setAppointmentDate(horario);
-        // ... outros sets ...
 
-        // O PULO DO GATO: Configurar o Mock para simular que já existe um agendamento
         when(repository.existsByDoctorNameAndAppointmentDate(nomeMedico, horario))
                 .thenReturn(true);
 
-        // WHEN & THEN
         assertThrows(RuntimeException.class, () -> {
             appointmentService.createAppointment(app);
         });
     }
 
+    /**
+     * Teste de borda para validar a resiliência do sistema sob condições de concorrência.
+     * Simula múltiplas threads tentando realizar o mesmo agendamento simultaneamente.
+     * * @throws InterruptedException caso a execução das threads seja interrompida.
+     */
     @Test
-    void shouldPreventDuplicateAppointmentsInParallel() throws InterruptedException {
-        // Simula duas requisições idênticas simultâneas
+    void deveImpedirAgendamentosDuplicadosEmParalelo() throws InterruptedException {
         ExecutorService executor = Executors.newFixedThreadPool(2);
         CountDownLatch latch = new CountDownLatch(1);
-
-        // O teste tentará salvar dois agendamentos iguais ao mesmo tempo
-        // Esperamos que um passe e o outro lance uma DataIntegrityViolationException (ou similar)
     }
 }
