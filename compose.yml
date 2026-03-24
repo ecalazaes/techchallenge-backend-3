@@ -1,22 +1,17 @@
 services:
-  procpag:
-    image: docker.io/erickemprobr/procpag:latest
-    platform: linux/amd64
-    ports:
-      - "8089:8089"
-    networks:
-      - fase3net
-
+  # --- INFRAESTRUTURA ---
   rabbitmq:
     image: rabbitmq:3-management
+    container_name: rabbitmq
     ports:
-      - "5672:5672"   # Comunicação dos serviços
-      - "15672:15672" # Painel (guest/guest)
+      - "5672:5672"   # Porta de comunicação AMQP
+      - "15672:15672" # Painel de Gerenciamento (guest/guest)
     networks:
       - fase3net
 
   postgres-db:
     image: postgres:15
+    container_name: postgres-db
     environment:
       - POSTGRES_USER=admin
       - POSTGRES_PASSWORD=admin
@@ -29,10 +24,76 @@ services:
     networks:
       - fase3net
 
+  # --- MICROSSERVIÇOS ---
+  scheduling-service:
+    build:
+      context: .
+      dockerfile: scheduling-service/Dockerfile
+    container_name: scheduling-service
+    restart: always
+    ports:
+      - "8081:8081"
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres-db:5432/scheduling_db
+      - SPRING_RABBITMQ_HOST=rabbitmq
+      - JWT_SECRET=SuaChaveSuperSecretacomMaisDe32CaracteresParaSeguranca # Configure a mesma chave em todos
+      - SPRING_PROFILES_ACTIVE=prod
+    depends_on:
+      - postgres-db
+      - rabbitmq
+    networks:
+      - fase3net
+
+  notification-service:
+    build:
+      context: .
+      dockerfile: notification-service/Dockerfile
+    container_name: notification-service
+    restart: always
+    ports:
+      - "8082:8082"
+    environment:
+      - SPRING_RABBITMQ_HOST=rabbitmq
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres-db:5432/notification_db
+      - JWT_SECRET=SuaChaveSuperSecretacomMaisDe32CaracteresParaSeguranca
+      - SPRING_PROFILES_ACTIVE=prod
+    depends_on:
+      - postgres-db
+      - rabbitmq
+    networks:
+      - fase3net
+
+  history-service:
+    build:
+      context: .
+      dockerfile: history-service/Dockerfile
+    container_name: history-service
+    restart: always
+    ports:
+      - "8083:8083"
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres-db:5432/history_db
+      - SPRING_RABBITMQ_HOST=rabbitmq
+      - JWT_SECRET=SuaChaveSuperSecretacomMaisDe32CaracteresParaSeguranca
+      - SPRING_PROFILES_ACTIVE=prod
+    depends_on:
+      - postgres-db
+      - rabbitmq
+    networks:
+      - fase3net
+
+  # --- SERVIÇO EXTERNO / LEGADO ---
+  procpag:
+    image: docker.io/erickemprobr/procpag:latest
+    container_name: procpag
+    ports:
+      - "8089:8089"
+    networks:
+      - fase3net
+
 networks:
   fase3net:
     driver: bridge
 
-# BLOCO FALTANTE ADICIONADO AQUI:
 volumes:
   postgres_data:

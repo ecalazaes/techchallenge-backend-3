@@ -2,6 +2,7 @@ package com.techchallenge.history_service.security;
 
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import javax.crypto.SecretKey;
@@ -23,7 +24,7 @@ import javax.crypto.SecretKey;
  */
 @Component
 public class JwtUtil {
-
+    @Value("${JWT_SECRET:SuaChaveSuperSecretacomMaisDe32CaracteresParaSeguranca}")
     private final String SECRET_STRING = "SuaChaveSuperSecretaComMaisDe32CaracteresParaSeguranca";
     private final SecretKey SECRET_KEY = Keys.hmacShaKeyFor(SECRET_STRING.getBytes());
 
