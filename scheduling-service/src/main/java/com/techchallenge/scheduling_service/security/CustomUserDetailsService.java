@@ -19,8 +19,8 @@ public class CustomUserDetailsService implements UserDetailsService {
         return userRepository.findByUsername(username)
                 .map(user -> User.builder()
                         .username(user.getUsername())
-                        .password("{noop}" + user.getPassword()) // {noop} para ignorar BCrypt no teste
-                        .authorities(user.getRole()) // Aqui ele pega ROLE_MEDICO, etc.
+                        .password(user.getPassword())
+                        .authorities(user.getRole())
                         .build())
                 .orElseThrow(() -> new UsernameNotFoundException("Usuário não encontrado no banco!"));
     }

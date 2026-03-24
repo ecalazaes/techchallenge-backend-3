@@ -4,60 +4,64 @@ import com.techchallenge.scheduling_service.model.UserAccount;
 import com.techchallenge.scheduling_service.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.CommandLineRunner;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
 
 /**
  * Componente responsável pela carga inicial de dados (seeding) do sistema.
  * <p>
- * Implementa {@link CommandLineRunner} para executar a lógica de inserção de usuários
- * logo após a inicialização do contexto da aplicação Spring Boot.
+ * Implementa {@link CommandLineRunner} para realizar a inserção de usuários padrão
+ * assim que o contexto da aplicação é carregado.
  * </p>
  * <p>
- * <b>Nota:</b> Esta classe verifica se a base de dados de usuários está vazia antes de
- * realizar as inserções para evitar duplicidade em reinicializações do serviço.
+ * <b>Segurança:</b> As senhas são criptografadas utilizando o {@link PasswordEncoder}
+ * definido na configuração de segurança, garantindo que nenhum dado sensível
+ * seja armazenado em texto plano.
  * </p>
- * @author Erick Calazães
- *
+ * * @author Erick Calazães
+ * @since 24/03/2026
  */
 @Component
 @RequiredArgsConstructor
 public class DataInitializer implements CommandLineRunner {
 
     private final UserRepository userRepository;
+    private final PasswordEncoder passwordEncoder;
 
+    /**
+     * Executa a rotina de criação de usuários caso a base de dados esteja vazia.
+     * * @param args Argumentos da linha de comando.
+     * @throws Exception Caso ocorra erro na persistência dos dados.
+     */
     @Override
     public void run(String... args) throws Exception {
-        // Só insere se o banco estiver vazio
         if (userRepository.count() == 0) {
 
-            System.out.println("🚀 Inicializando usuários no banco de dados...");
+            System.out.println("🚀 Inicializando usuários com criptografia BCrypt...");
 
-            UserAccount medico = new UserAccount();
-            medico.setUsername("medico_erick");
-            medico.setPassword("123");
-            medico.setRole("ROLE_MEDICO");
-            userRepository.save(medico);
-
-            UserAccount enfermeiro = new UserAccount();
-            enfermeiro.setUsername("enfermeiro_gabriel");
-            enfermeiro.setPassword("123");
-            enfermeiro.setRole("ROLE_ENFERMEIRO");
-            userRepository.save(enfermeiro);
-
-            UserAccount paciente = new UserAccount();
-            paciente.setUsername("paciente_dani");
-            paciente.setPassword("123");
-            paciente.setRole("ROLE_PACIENTE");
-            userRepository.save(paciente);
-
-            UserAccount paciente2 = new UserAccount();
-            paciente2.setUsername("paciente_gw2");
-            paciente2.setPassword("123");
-            paciente2.setRole("ROLE_PACIENTE");
-            userRepository.save(paciente2);
+            userRepository.save(createAccount("medico_erick", "123", "ROLE_MEDICO"));
+            userRepository.save(createAccount("enfermeiro_gabriel", "123", "ROLE_ENFERMEIRO"));
+            userRepository.save(createAccount("paciente_dani", "123", "ROLE_PACIENTE"));
+            userRepository.save(createAccount("paciente_gw2", "123", "ROLE_PACIENTE"));
 
             System.out.println("✅ Usuários criados com sucesso!");
         }
+    }
+
+    /**
+     * Método auxiliar para criação e codificação de contas de usuário.
+     * * @param username Nome de usuário único.
+     * @param rawPassword Senha em texto plano (será criptografada).
+     * @param role Perfil de acesso do usuário.
+     * @return Instância de UserAccount pronta para persistência.
+     */
+    private UserAccount createAccount(String username, String rawPassword, String role) {
+        UserAccount account = new UserAccount();
+        account.setUsername(username);
+        // Criptografa a senha antes de salvar
+        account.setPassword(passwordEncoder.encode(rawPassword));
+        account.setRole(role);
+        return account;
     }
 }
