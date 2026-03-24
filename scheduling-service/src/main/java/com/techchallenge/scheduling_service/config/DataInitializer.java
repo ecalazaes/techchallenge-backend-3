@@ -40,10 +40,7 @@ public class DataInitializer implements CommandLineRunner {
 
             System.out.println("🚀 Inicializando usuários com criptografia BCrypt...");
 
-            userRepository.save(createAccount("medico_erick", "123", "ROLE_MEDICO"));
-            userRepository.save(createAccount("enfermeiro_gabriel", "123", "ROLE_ENFERMEIRO"));
-            userRepository.save(createAccount("paciente_dani", "123", "ROLE_PACIENTE"));
-            userRepository.save(createAccount("paciente_gw2", "123", "ROLE_PACIENTE"));
+            -
 
             System.out.println("Usuários criados com sucesso!");
         }

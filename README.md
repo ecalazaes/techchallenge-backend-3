@@ -22,8 +22,6 @@ Este projeto faz parte da Fase 3 do Tech Challenge da Pós-Graduação em Desenv
 
 O projeto foi desenhado utilizando o padrão de **Microsserviços**, onde cada domínio possui seu próprio banco de dados e responsabilidades isoladas.
 
-
-
 * **Scheduling Service (Porta 8081)**: Responsável pela criação e gestão de agendamentos. Atua como o produtor de eventos.
 * **Notification Service (Porta 8082)**: Consome eventos de agendamento para disparar comunicações.
 * **History Service (Porta 8083)**: Consome eventos para manter um registro histórico e auditoria. Possui interface **GraphQL**.
@@ -58,7 +56,7 @@ A infraestrutura completa (serviços, RabbitMQ e Bancos) está configurada via D
     ```bash
     docker-compose up --build
     ```
-3.  **Bancos de Dados**: O sistema cria automaticamente o scheduling_db e  executa o script `init.sql` para criar os schemas `notification_db` e `history_db`.
+3.  **Bancos de Dados**: O sistema cria automaticamente o `scheduling_db` e executa o script `init.sql` para criar os schemas `notification_db` e `history_db`.
 
 ---
 
@@ -75,12 +73,83 @@ Acesse as interfaces enquanto os containers estiverem rodando:
 ## 🚀 Como Testar (Postman)
 
 Dentro da pasta `/postman` na raiz do projeto, importe a collection:
-1.  `TechChallenge_Fase3_Collection.json`.
+`TechChallenge_Fase3_Collection.json`.
 
-### Fluxo de Teste Sugerido:
-1.  **Criação**: Execute o `POST` de agendamento no `Scheduling Service` (Porta 8081).
-2.  **Mensageria**: Verifique no console do Docker os logs do `Notification` e `History` recebendo a mensagem simultaneamente.
-3.  **Consulta**: Utilize o GraphQL no `History Service` para buscar o histórico do paciente.
+### Fluxo de Testes e Endpoints
+
+**1. Login e Autenticação**
+Realize login e utilize o JWT token retornado no Header `Authorization: Bearer <token>` nas próximas requisições.
+* **POST** `http://localhost:8081/api/auth/login`
+* *Usuários de teste:* `medico_erick` / `enfermeiro_gabriel` / `paciente_dani` / `paciente_gw2` | *Senha:* `123`
+```json
+{
+    "username": "medico_erick",
+    "password": "123"
+}
+```
+
+**2. Criação e Gestão de Consultas (Scheduling Service - REST)**
+**Criar Consulta (POST)** `http://localhost:8081/api/appointments`
+```json
+{
+    "patientName": "Daniele Pinheiro",
+    "patientUsername": "paciente_dani",
+    "patientEmail": "daniele@teste.com",
+    "doctorName": "Dr. Silva",
+    "appointmentDate": "2026-03-25T15:03:00",
+    "status": "SCHEDULED"
+}
+```
+
+**Editar Consulta (PUT)** `http://localhost:8081/api/appointments/1`
+```json
+{
+    "doctorName": "Dr. Silva",
+    "appointmentDate": "2026-05-25T15:30:00",
+    "status": "UPDATED_SCHEDULED"
+}
+```
+
+**Deletar Consulta (DELETE)** `http://localhost:8081/api/appointments/1`
+
+**3. Auditoria e Histórico Clínico (History Service - GraphQL)**
+* **POST** `http://localhost:8083/graphql`
+
+**Retornar Consultas Gerais:**
+```graphql
+query {
+  getAllHistories {
+    id
+    patientEmail
+    doctorName
+    appointmentDate
+    status
+    notes
+  }
+}
+```
+
+**Retornar Consultas Futuras por E-mail:**
+```graphql
+query {
+  getHistoryByEmail(patientEmail: "daniele@teste.com", futureOnly: true) {
+    appointmentDate
+    doctorName
+    status
+  }
+}
+```
+
+**Adicionar Notas (Restrito a Médico ou Enfermeiro):**
+```graphql
+mutation {
+  addNotesToHistory(id: "1", notes: "Paciente apresenta melhora no quadro clínico. Recomenda-se repouso.") {
+    id
+    patientEmail   
+    notes 
+  }
+}
+```
 
 ---
 
@@ -97,6 +166,3 @@ Para garantir a resiliência:
 ### 3. Integridade e Validação
 * **Bean Validation**: DTOs protegidos com `@NotBlank`, `@Email` e `@Future`, garantindo a qualidade dos dados de entrada.
 * **Tratamento Global de Exceções**: Implementamos um `@ControllerAdvice` que mapeia erros para códigos HTTP semânticos (400, 404, 409, 500).
-
----
-
