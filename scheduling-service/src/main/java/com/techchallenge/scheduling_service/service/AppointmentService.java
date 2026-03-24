@@ -24,7 +24,7 @@ public class AppointmentService {
         appointment.setStatus("SCHEDULED");
         Appointment savedAppointment = repository.save(appointment);
 
-        producer.sendConsultationEvent(savedAppointment);
+        producer.sendAppointmentEvent(savedAppointment);
         return savedAppointment;
     }
 
@@ -42,7 +42,7 @@ public class AppointmentService {
         Appointment saved = repository.save(appointment);
 
         // 3. REQUISITO: Avisa o History e o Notification
-        producer.sendConsultationEvent(saved);
+        producer.sendAppointmentEvent(saved);
 
         return saved;
     }
@@ -57,6 +57,6 @@ public class AppointmentService {
         repository.save(appointment);
 
         // Avisa que foi cancelado
-        producer.sendConsultationEvent(appointment);
+        producer.sendAppointmentEvent(appointment);
     }
 }
