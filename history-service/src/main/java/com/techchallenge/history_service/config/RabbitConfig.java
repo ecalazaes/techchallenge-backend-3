@@ -3,10 +3,7 @@ package com.techchallenge.history_service.config;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
-import org.springframework.amqp.core.Binding;
-import org.springframework.amqp.core.BindingBuilder;
-import org.springframework.amqp.core.FanoutExchange;
-import org.springframework.amqp.core.Queue;
+import org.springframework.amqp.core.*;
 import org.springframework.amqp.support.converter.Jackson2JsonMessageConverter;
 import org.springframework.amqp.support.converter.MessageConverter;
 import org.springframework.context.annotation.Bean;
@@ -33,11 +30,21 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 public class RabbitConfig {
 
     public static final String HISTORY_QUEUE = "history.queue";
+    public static final String HISTORY_DLQ = "history.queue.dlq";
     public static final String FANOUT_EXCHANGE = "appointment.fanout";
 
     @Bean
     public Queue historyQueue() {
-        return new Queue(HISTORY_QUEUE, true);
+        return QueueBuilder.durable(HISTORY_QUEUE)
+                // Se a mensagem for rejeitada após as tentativas, vai para a DLQ
+                .withArgument("x-dead-letter-exchange", "")
+                .withArgument("x-dead-letter-routing-key", HISTORY_DLQ)
+                .build();
+    }
+
+    @Bean
+    public Queue historyDLQ() {
+        return new Queue(HISTORY_DLQ, true);
     }
 
     @Bean

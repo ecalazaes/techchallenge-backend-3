@@ -6,6 +6,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -35,7 +36,7 @@ public class AppointmentController {
             @ApiResponse(responseCode = "400", description = "Dados de entrada inválidos ou conflito de horário")
     })
     @PostMapping
-    public ResponseEntity<Appointment> createAppointment(@RequestBody Appointment appointment) {
+    public ResponseEntity<Appointment> createAppointment(@Valid @RequestBody Appointment appointment) {
         Appointment saved = appointmentService.createAppointment(appointment);
         return ResponseEntity.status(HttpStatus.CREATED).body(saved);
     }
@@ -48,7 +49,7 @@ public class AppointmentController {
     })
     @PutMapping("/{id}")
     @PreAuthorize("hasAnyRole('MEDICO', 'ENFERMEIRO')")
-    public ResponseEntity<Appointment> update(@PathVariable Long id, @RequestBody Appointment details) {
+    public ResponseEntity<Appointment> update(@Valid @PathVariable Long id, @RequestBody Appointment details) {
         return ResponseEntity.ok(appointmentService.updateAppointment(id, details));
     }
 
@@ -59,7 +60,7 @@ public class AppointmentController {
     })
     @DeleteMapping("/{id}")
     @PreAuthorize("hasAnyRole('MEDICO', 'ENFERMEIRO')")
-    public ResponseEntity<Void> delete(@PathVariable Long id) {
+    public ResponseEntity<Void> delete(@Valid  @PathVariable Long id) {
         appointmentService.cancelAppointment(id);
         return ResponseEntity.noContent().build();
     }

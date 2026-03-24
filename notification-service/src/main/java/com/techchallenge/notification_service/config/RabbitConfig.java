@@ -3,10 +3,7 @@ package com.techchallenge.notification_service.config;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
-import org.springframework.amqp.core.Binding;
-import org.springframework.amqp.core.BindingBuilder;
-import org.springframework.amqp.core.FanoutExchange;
-import org.springframework.amqp.core.Queue;
+import org.springframework.amqp.core.*;
 import org.springframework.amqp.support.converter.Jackson2JsonMessageConverter;
 import org.springframework.amqp.support.converter.MessageConverter;
 import org.springframework.context.annotation.Bean;
@@ -31,11 +28,22 @@ import org.springframework.context.annotation.Configuration;
 public class RabbitConfig {
 
     public static final String NOTIFICATION_QUEUE = "notification.queue";
+    public static final String NOTIFICATION_DLQ = "notification.queue.dlq";
     public static final String FANOUT_EXCHANGE = "appointment.fanout";
 
     @Bean
     public Queue notificationQueue() {
-        return new Queue(NOTIFICATION_QUEUE, true);
+        return QueueBuilder.durable(NOTIFICATION_QUEUE)
+                // Se a mensagem falhar X vezes, mande para esta Exchange
+                .withArgument("x-dead-letter-exchange", "")
+                // E use esta Routing Key (que é o nome da nossa DLQ)
+                .withArgument("x-dead-letter-routing-key", NOTIFICATION_DLQ)
+                .build();
+    }
+
+    @Bean
+    public Queue notificationDLQ() {
+        return new Queue(NOTIFICATION_DLQ, true);
     }
 
     @Bean
