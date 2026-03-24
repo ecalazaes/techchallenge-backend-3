@@ -10,7 +10,9 @@ import java.util.List;
 @Repository
 public interface MedicalHistoryRepository extends JpaRepository<MedicalHistory, Long> {
     List<MedicalHistory> findByPatientEmail(String patientEmail);
+
     List<MedicalHistory> findByPatientUsername(String patientUsername);
+
     // Query para buscar apenas consultas futuras de um paciente específico
     List<MedicalHistory> findByPatientEmailAndAppointmentDateAfter(String patientEmail, LocalDateTime date);
 }
