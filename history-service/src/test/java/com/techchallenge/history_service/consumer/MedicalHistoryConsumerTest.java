@@ -13,7 +13,11 @@ import java.time.LocalDateTime;
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
- * Valida a sincronização de dados vinda da mensageria para o banco de histórico.
+ * Testes de integração para o consumidor de histórico médico.
+ * Valida a recepção de eventos via mensageria e a correta persistência/sincronização
+ * dos dados no banco de dados de histórico.
+ * * @author Erick Calazães
+ * @version 1.0.0
  */
 @SpringBootTest
 @ActiveProfiles("test")
@@ -25,8 +29,12 @@ class MedicalHistoryConsumerTest {
     @Autowired
     private MedicalHistoryRepository repository;
 
+    /**
+     * Valida se um evento de agendamento recebido é corretamente convertido
+     * e persistido como um registro de histórico no banco de dados.
+     */
     @Test
-    void shouldSyncAppointmentEventToHistoryDatabase() {
+    void deveSincronizarEventoDeAgendamentoNoBancoDeHistorico() {
         AppointmentEventDTO dto = new AppointmentEventDTO();
         dto.setId(99L);
         dto.setPatientName("Paciente Evento");
@@ -41,27 +49,27 @@ class MedicalHistoryConsumerTest {
         assertEquals("COMPLETADO", saved.getStatus());
     }
 
+    /**
+     * Teste de idempotência que garante que o sistema lida corretamente com
+     * mensagens duplicadas provenientes do RabbitMQ.
+     * Verifica se o registro existente é atualizado sem lançar exceções de integridade.
+     */
     @Test
-    void shouldHandleDuplicateMessagesFromRabbitMQ() {
-        // 1. Primeira entrega (Criação)
+    void deveLidarComMensagensDuplicadasDoRabbitMQ() {
         AppointmentEventDTO dto = new AppointmentEventDTO();
         dto.setId(99L);
         dto.setPatientName("Erick Calazães");
         dto.setDoctorName("Dr. House");
         dto.setPatientEmail("erick@email.com");
         dto.setStatus("AGENDADO");
-        dto.setAppointmentDate(LocalDateTime.now()); // <--- Obrigatório
+        dto.setAppointmentDate(LocalDateTime.now());
 
         consumer.receiveAppointmentEvent(dto);
 
-        // 2. Segunda entrega (Simulando repetição com alteração de status)
-        // DICA: Não crie um "new AppointmentEventDTO()", apenas mude o campo no objeto existente
         dto.setStatus("COMPLETADO");
 
-        // Agora o dto tem o ID 99 e todos os campos preenchidos, incluindo o appointmentDate
         assertDoesNotThrow(() -> consumer.receiveAppointmentEvent(dto));
 
-        // 3. Verificação final
         MedicalHistory history = repository.findById(99L).orElseThrow();
         assertEquals("COMPLETADO", history.getStatus());
         assertNotNull(history.getAppointmentDate());

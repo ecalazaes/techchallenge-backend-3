@@ -14,8 +14,11 @@ import org.springframework.test.context.ActiveProfiles;
 import java.time.LocalDateTime;
 
 /**
- * Teste de Integração da API GraphQL.
- * Valida o contrato do Schema e a segurança baseada em Roles.
+ * Testes de integração para a API GraphQL do histórico médico.
+ * Valida a execução de Queries e Mutations, o cumprimento do Schema GraphQL
+ * e a aplicação de segurança baseada em perfis de acesso (Roles).
+ * * @author Erick Calazães
+ * @version 1.0.0
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @AutoConfigureHttpGraphQlTester
@@ -28,6 +31,10 @@ class MedicalHistoryControllerTest {
     @Autowired
     private MedicalHistoryRepository repository;
 
+    /**
+     * Configuração inicial para cada teste.
+     * Limpa o repositório e insere um registro base para validação das consultas.
+     */
     @BeforeEach
     void setup() {
         repository.deleteAll();
@@ -42,6 +49,10 @@ class MedicalHistoryControllerTest {
         repository.save(history);
     }
 
+    /**
+     * Valida se um usuário autenticado com o perfil de PACIENTE consegue
+     * buscar seu próprio histórico através de uma Query GraphQL.
+     */
     @Test
     @WithMockUser(username = "erick.user", roles = {"PACIENTE"})
     void shouldFetchHistoryForAuthenticatedUser() {
@@ -61,6 +72,10 @@ class MedicalHistoryControllerTest {
                 .isEqualTo("Erick Teste");
     }
 
+    /**
+     * Valida se um usuário com o perfil de MEDICO possui permissão para
+     * atualizar as observações de um histórico através de uma Mutation GraphQL.
+     */
     @Test
     @WithMockUser(roles = {"MEDICO"})
     void shouldUpdateNotesViaMutation() {
