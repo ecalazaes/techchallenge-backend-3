@@ -6,6 +6,20 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.stereotype.Component;
 
+
+/**
+ * Componente responsável pela carga inicial de dados (seeding) do sistema.
+ * <p>
+ * Implementa {@link CommandLineRunner} para executar a lógica de inserção de usuários
+ * logo após a inicialização do contexto da aplicação Spring Boot.
+ * </p>
+ * <p>
+ * <b>Nota:</b> Esta classe verifica se a base de dados de usuários está vazia antes de
+ * realizar as inserções para evitar duplicidade em reinicializações do serviço.
+ * </p>
+ * @author Erick Calazães
+ *
+ */
 @Component
 @RequiredArgsConstructor
 public class DataInitializer implements CommandLineRunner {
