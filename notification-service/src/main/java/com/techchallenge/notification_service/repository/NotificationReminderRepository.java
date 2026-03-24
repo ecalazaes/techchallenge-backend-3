@@ -14,7 +14,5 @@ public interface NotificationReminderRepository extends JpaRepository<Notificati
     // Busca lembretes pendentes que acontecem entre Agora e as próximas 24 horas
     List<NotificationReminder> findByStatusAndAppointmentDateBefore(String status, LocalDateTime limit);
 
-    void deleteByPatientEmailAndAppointmentDate(String email, LocalDateTime date);
-
     Optional<NotificationReminder> findByPatientEmailAndAppointmentDate(String email, LocalDateTime date);
 }

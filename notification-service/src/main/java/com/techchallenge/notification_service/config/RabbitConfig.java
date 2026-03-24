@@ -12,6 +12,21 @@ import org.springframework.amqp.support.converter.MessageConverter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
+/**
+ * Configuração de infraestrutura para mensageria utilizando RabbitMQ.
+ * <p>
+ * Esta classe define os componentes necessários para que o serviço de notificação
+ * possa consumir mensagens de agendamento, estabelecendo a fila, a exchange e
+ * a estratégia de conversão de dados.
+ * </p>
+ * <p>
+ * <b>Destaque:</b> Inclui suporte nativo para tipos de data do Java 8+ através do
+ * {@link JavaTimeModule}, essencial para o processamento de horários de consultas.
+ * </p>
+ *
+ * @author Erick Calazães
+ * @since 24/03/2026
+ */
 @Configuration
 public class RabbitConfig {
 
@@ -30,19 +45,14 @@ public class RabbitConfig {
 
     @Bean
     public Binding binding(Queue notificationQueue, FanoutExchange fanoutExchange) {
-        // Amarra a fila de notificação ao transmissor geral
         return BindingBuilder.bind(notificationQueue).to(fanoutExchange);
     }
 
-    // ATUALIZADO: Agora o conversor entende LocalDateTime
     @Bean
     public MessageConverter jsonMessageConverter() {
         ObjectMapper objectMapper = new ObjectMapper();
 
-        // Registra o módulo para tipos Java 8 (LocalDate, LocalDateTime, etc)
         objectMapper.registerModule(new JavaTimeModule());
-
-        // Evita que a data seja escrita como um array de números [2026, 3, 24...]
         objectMapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
 
         return new Jackson2JsonMessageConverter(objectMapper);

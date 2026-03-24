@@ -12,6 +12,21 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Optional;
 
+/**
+ * Consumidor de mensagens responsável por processar eventos de agendamento.
+ * <p>
+ * Esta classe atua como o entrypoint para as mensagens vindas do RabbitMQ.
+ * Ela coordena a lógica de negócio necessária para manter o histórico de notificações
+ * sincronizado e acionar o serviço de envio de e-mails.
+ * </p>
+ * <p>
+ * <b>Idempotência:</b> O método de recepção foi projetado para lidar com reprocessamentos,
+ * verificando a existência de lembretes prévios antes de criar novos registros.
+ * </p>
+ *
+ * @author Erick Calazães
+ * @since 24/03/2026
+ */
 @Component
 @RequiredArgsConstructor
 public class NotificationConsumer {
@@ -19,39 +34,49 @@ public class NotificationConsumer {
     private final EmailService emailService;
     private final NotificationReminderRepository repository;
 
+    /**
+     * Intercepta mensagens da fila de notificações e processa o ciclo de vida do lembrete.
+     * <p>
+     * O fluxo consiste em:
+     * <ol>
+     * <li>Consumir o DTO serializado em JSON da fila {@code notification.queue}.</li>
+     * <li>Sincronizar o estado do agendamento no banco de dados local (Upsert).</li>
+     * <li>Disparar a notificação imediata via protocolo SMTP.</li>
+     * </ol>
+     * </p>
+     * <p>
+     * <b>Transacionalidade:</b> O método é anotado com {@link Transactional} para garantir
+     * que a persistência no banco de dados seja atômica.
+     * </p>
+     *
+     * @param dto Objeto de transferência contendo os detalhes do agendamento (Paciente, Médico, Data).
+     */
     @RabbitListener(queues = RabbitConfig.NOTIFICATION_QUEUE)
     @Transactional
     public void receiveNotification(AppointmentEventDTO dto) {
         System.out.println("📩 Evento recebido: " + dto.getStatus() + " para " + dto.getPatientEmail());
 
-        // 1. Tenta buscar um lembrete existente (ex: pelo e-mail e data da consulta)
-        // Você precisa criar esse método find no seu Repository
         Optional<NotificationReminder> existingReminder = repository.findByPatientEmailAndAppointmentDate(
                 dto.getPatientEmail(), dto.getAppointmentDate());
 
         NotificationReminder reminder;
 
         if (existingReminder.isPresent()) {
-            // Se já existe, vamos atualizar o que já está no banco
             reminder = existingReminder.get();
             System.out.println("🔄 Atualizando lembrete existente para: " + dto.getPatientEmail());
         } else {
-            // Se não existe, criamos um novo
             reminder = new NotificationReminder();
             System.out.println("🆕 Criando novo lembrete para: " + dto.getPatientEmail());
         }
 
-        // 2. Seta os dados (independente de ser novo ou update)
         reminder.setPatientEmail(dto.getPatientEmail());
         reminder.setPatientName(dto.getPatientName());
         reminder.setDoctorName(dto.getDoctorName());
         reminder.setAppointmentDate(dto.getAppointmentDate());
-        reminder.setStatus("PENDENTE"); // Volta para pendente se foi editado
+        reminder.setStatus("PENDENTE");
 
-        // 3. Salva (O Hibernate decidirá entre Insert ou Update com base no ID)
         repository.save(reminder);
 
-        // 4. Envia o e-mail imediato
         emailService.sendAppointmentEmail(dto);
     }
 }
