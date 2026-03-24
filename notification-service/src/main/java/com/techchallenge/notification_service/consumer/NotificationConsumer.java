@@ -54,7 +54,7 @@ public class NotificationConsumer {
     @RabbitListener(queues = RabbitConfig.NOTIFICATION_QUEUE)
     @Transactional
     public void receiveNotification(AppointmentEventDTO dto) {
-        System.out.println("📩 Evento recebido: " + dto.getStatus() + " para " + dto.getPatientEmail());
+        System.out.println("Evento recebido: " + dto.getStatus() + " para " + dto.getPatientEmail());
 
         Optional<NotificationReminder> existingReminder = repository.findByPatientEmailAndAppointmentDate(
                 dto.getPatientEmail(), dto.getAppointmentDate());
@@ -63,10 +63,10 @@ public class NotificationConsumer {
 
         if (existingReminder.isPresent()) {
             reminder = existingReminder.get();
-            System.out.println("🔄 Atualizando lembrete existente para: " + dto.getPatientEmail());
+            System.out.println("Atualizando lembrete existente para: " + dto.getPatientEmail());
         } else {
             reminder = new NotificationReminder();
-            System.out.println("🆕 Criando novo lembrete para: " + dto.getPatientEmail());
+            System.out.println("Criando novo lembrete para: " + dto.getPatientEmail());
         }
 
         reminder.setPatientEmail(dto.getPatientEmail());

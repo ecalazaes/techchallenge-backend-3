@@ -13,10 +13,10 @@ import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.context.ActiveProfiles;
 
 import java.time.LocalDateTime;
-import java.util.List;
 import java.util.Optional;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -44,8 +44,8 @@ class AppointmentIntegrationTest {
         // GIVEN
         Appointment app = new Appointment();
         app.setPatientName("Erick");
-        app.setPatientEmail("erick@teste.com"); // <--- ADICIONE ESTA LINHA
-        app.setPatientUsername("erick_user");   // Adicione também se for obrigatório
+        app.setPatientEmail("erick@teste.com");
+        app.setPatientUsername("erick_user");
         app.setDoctorName("Dr. House");
         app.setAppointmentDate(LocalDateTime.now().plusDays(1));
 
@@ -56,7 +56,7 @@ class AppointmentIntegrationTest {
         Optional<Appointment> buscado = repository.findById(salvo.getId());
         assertTrue(buscado.isPresent());
         assertEquals("SCHEDULED", buscado.get().getStatus());
-        verify(producer, times(1)).sendConsultationEvent(any());
+        verify(producer, times(1)).sendAppointmentEvent(any());
     }
 
     @Test
@@ -66,7 +66,7 @@ class AppointmentIntegrationTest {
         Appointment app = new Appointment();
         app.setPatientName("Erick");
         app.setPatientEmail("erick@teste.com");
-        app.setPatientUsername("erick.calazaes"); // <--- FALTAVA ESTA LINHA
+        app.setPatientUsername("erick.calazaes");
         app.setDoctorName("Dr. House");
         app.setAppointmentDate(LocalDateTime.now().plusDays(1));
         app.setStatus("SCHEDULED");
@@ -80,9 +80,6 @@ class AppointmentIntegrationTest {
         // THEN: Busca do banco e verifica
         Appointment cancelado = repository.findById(salvo.getId()).get();
         assertEquals("CANCELLED", cancelado.getStatus());
-        verify(producer, times(1)).sendConsultationEvent(any()); // 1 do save, 1 do cancel
+        verify(producer, times(1)).sendAppointmentEvent(any());
     }
-
-
-
 }

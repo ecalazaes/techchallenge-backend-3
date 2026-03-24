@@ -40,4 +40,30 @@ class MedicalHistoryConsumerTest {
         assertEquals("Paciente Evento", saved.getPatientName());
         assertEquals("COMPLETADO", saved.getStatus());
     }
+
+    @Test
+    void shouldHandleDuplicateMessagesFromRabbitMQ() {
+        // 1. Primeira entrega (Criação)
+        AppointmentEventDTO dto = new AppointmentEventDTO();
+        dto.setId(99L);
+        dto.setPatientName("Erick Calazães");
+        dto.setDoctorName("Dr. House");
+        dto.setPatientEmail("erick@email.com");
+        dto.setStatus("AGENDADO");
+        dto.setAppointmentDate(LocalDateTime.now()); // <--- Obrigatório
+
+        consumer.receiveAppointmentEvent(dto);
+
+        // 2. Segunda entrega (Simulando repetição com alteração de status)
+        // DICA: Não crie um "new AppointmentEventDTO()", apenas mude o campo no objeto existente
+        dto.setStatus("COMPLETADO");
+
+        // Agora o dto tem o ID 99 e todos os campos preenchidos, incluindo o appointmentDate
+        assertDoesNotThrow(() -> consumer.receiveAppointmentEvent(dto));
+
+        // 3. Verificação final
+        MedicalHistory history = repository.findById(99L).orElseThrow();
+        assertEquals("COMPLETADO", history.getStatus());
+        assertNotNull(history.getAppointmentDate());
+    }
 }

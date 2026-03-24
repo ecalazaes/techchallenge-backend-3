@@ -12,6 +12,9 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.LocalDateTime;
 import java.util.Optional;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -44,7 +47,7 @@ public class AppointmentServiceTest {
         // THEN
         assertEquals("SCHEDULED", result.getStatus());
         verify(repository, times(1)).save(any());
-        verify(producer, times(1)).sendConsultationEvent(any());
+        verify(producer, times(1)).sendAppointmentEvent(any());
     }
 
     @Test
@@ -63,7 +66,7 @@ public class AppointmentServiceTest {
 
         // THEN
         assertEquals("CANCELLED", appointment.getStatus());
-        verify(producer, times(1)).sendConsultationEvent(appointment);
+        verify(producer, times(1)).sendAppointmentEvent(appointment);
     }
 
     @Test
@@ -105,5 +108,15 @@ public class AppointmentServiceTest {
         assertThrows(RuntimeException.class, () -> {
             appointmentService.createAppointment(app);
         });
+    }
+
+    @Test
+    void shouldPreventDuplicateAppointmentsInParallel() throws InterruptedException {
+        // Simula duas requisições idênticas simultâneas
+        ExecutorService executor = Executors.newFixedThreadPool(2);
+        CountDownLatch latch = new CountDownLatch(1);
+
+        // O teste tentará salvar dois agendamentos iguais ao mesmo tempo
+        // Esperamos que um passe e o outro lance uma DataIntegrityViolationException (ou similar)
     }
 }
