@@ -1,0 +1,31 @@
+# src/main/resources/graphql/schema.graphqls
+
+# Representa o registro histórico de uma consulta médica
+type MedicalHistory {
+    id: ID!
+    patientName: String!
+    patientEmail: String!
+    patientUsername: String!
+    doctorName: String!
+    appointmentDate: String!
+    status: String!
+    notes: String
+}
+
+# Consultas (Leitura de dados)
+type Query {
+    # Médicos/Enfermeiros buscam por e-mail;
+
+    # Retorna todos os registros (Acesso restrito a ADMIN/MEDICO)
+    getAllHistories: [MedicalHistory]
+
+    # O 'futureOnly: Boolean' é o que traz a flexibilidade exigida
+    getHistoryByEmail(patientEmail: String!, futureOnly: Boolean): [MedicalHistory]
+}
+
+# Operações de Escrita (Alteração de dados)
+type Mutation {
+    # Permite ao médico adicionar notas clínicas a um histórico existente
+    # Restrito a usuários com ROLE_MEDICO
+    addNotesToHistory(id: ID!, notes: String!): MedicalHistory
+}

@@ -1,14 +1,38 @@
 services:
   procpag:
-    image: docker.io/erickemprobr/procpag:latest 
+    image: docker.io/erickemprobr/procpag:latest
     platform: linux/amd64
-    ports: 
-    - "8089:8089"
+    ports:
+      - "8089:8089"
     networks:
-    - fase3net
+      - fase3net
 
-  # adicione os seus outros serviços aqui
-  # faça com que todos os serviços usem a mesma rede 'fase3net'
+  rabbitmq:
+    image: rabbitmq:3-management
+    ports:
+      - "5672:5672"   # Comunicação dos serviços
+      - "15672:15672" # Painel (guest/guest)
+    networks:
+      - fase3net
+
+  postgres-db:
+    image: postgres:15
+    environment:
+      - POSTGRES_USER=admin
+      - POSTGRES_PASSWORD=admin
+      - POSTGRES_DB=scheduling_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - fase3net
 
 networks:
   fase3net:
+    driver: bridge
+
+# BLOCO FALTANTE ADICIONADO AQUI:
+volumes:
+  postgres_data:
